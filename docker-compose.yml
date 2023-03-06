@@ -1,0 +1,21 @@
+version: '2.2'
+
+services:
+    db:
+        image: "postgres"
+        ports:
+            - "5432:5432"
+        environment:
+            POSTGRES_DB: todo
+            POSTGRES_USER: todo_user
+            POSTGRES_PASSWORD: secret
+    app:
+        build: .
+        ports:
+            - "8080:8080"
+        environment:
+            SPRING_DATASOURCE_URL: jdbc:postgresql://db/todo
+            SPRING_DATASOURCE_USERNAME: todo_user
+            SPRING_DATASOURCE_PASSWORD: secret
+        depends_on:
+            - db

@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hepexta.todoapp.repository.mapper.CategoryMapper">
+
+    <resultMap id="dbCategory" type="com.hepexta.todoapp.model.db.Category">
+        <result column="todo_category_id" property="categoryId" />
+        <result column="todo_category_name" property="categoryName" />
+        <result column="todo_category_description" property="description" />
+        <result column="created_at" property="createdAt" />
+        <result column="created_by" property="createdBy" />
+        <result column="updated_at" property="updatedAt" />
+        <result column="updated_by" property="updatedBy" />
+    </resultMap>
+
+    <insert id="upsert" parameterType="java.util.List" timeout="60">
+        with value_list as (
+           select todo_category_id, todo_category_name, todo_category_description, created_at, created_by, updated_at, updated_by
+            from ( values
+             <foreach collection="entityList" item="item" separator=",">
+                 (#{item.categoryId}::uuid, #{item.categoryName}, #{item.description}, #{item.createdAt}::timestamptz,
+                 #{item.createdBy}, #{item.updatedAt}::timestamptz, #{item.updatedBy})
+             </foreach>   
+            ) as t (todo_category_id, todo_category_name, todo_category_description, created_at, created_by, updated_at, updated_by)
+        ), updated as (
+            update todo_category set
+            todo_category_name = coalesce(value_list.todo_category_name, todo_category.todo_category_name,
+            todo_category_description = coalesce(value_list.todo_category_description, todo_category.todo_category_description,
+            updated_at = value_list.updated_at,
+            updated_by = value_list.updated_by
+            from value_list
+            where todo_category.todo_category_id = value_list.todo_category_id
+            returning todo_category.todo_category_id
+            )
+        insert into todo_category (todo_category_id, todo_category_name, todo_category_description, created_at, created_by, updated_at, updated_by)
+        select todo_category_id, todo_category_name, todo_category_description, created_at, created_by, updated_at, updated_by
+        from value_list
+        where not exists (
+            select updated.todo_category_id
+            from updated
+            where updated.todo_category_id = value_list.todo_category_id
+        );
+    </insert>
+
+    <select id="find" resultMap="dbCategory">
+        select todo_category_id, todo_category_name, todo_category_description, created_at, created_by, updated_at, updated_by
+        from todo_category
+        where true
+        <if test="categoryId != null">
+            AND todo_category_id = #{categoryId}
+        </if>
+        <if test="categoryName != null">
+            AND todo_category_name = #{categoryName}
+        </if>
+        order by created_at desc
+        limit 1000;
+    </select>
+
+    <delete id="delete">
+        delete from todo_item where todo_item_id = #{todoItemId}
+    </delete>
+</mapper>

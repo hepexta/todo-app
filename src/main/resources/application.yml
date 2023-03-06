@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: todo-application
+    version: 1
+  flyway:
+    enabled: true
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://db/todo}
+    driver-class-name: org.postgresql.Driver
+    username: ${SPRING_DATASOURCE_USERNAME:todo_user}
+    password: ${SPRING_DATASOURCE_PASSWORD:secret}
+mybatis:
+  mapper-locations: classpath:mapper/*Mapper.xml
+  type-handlers-package: com.hepexta.todoapp.repository.typehandler
+  type-aliases-package: com.hepexta.todoapp.model

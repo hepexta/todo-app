@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hepexta.todoapp.repository.mapper.TodoItemMapper">
+
+    <resultMap id="dbTodoItem" type="com.hepexta.todoapp.model.db.TodoItem">
+        <result column="todo_item_id" property="todoItemId" />
+        <result column="todo_item_label" property="label" />
+        <result column="todo_item_description" property="description" />
+        <result column="todo_category_id" property="categoryId" />
+        <result column="todo_category_name" property="categoryName" />
+        <result column="status" property="status" />
+        <result column="created_at" property="createdAt" />
+        <result column="created_by" property="createdBy" />
+        <result column="updated_at" property="updatedAt" />
+        <result column="updated_by" property="updatedBy" />
+    </resultMap>
+
+    <insert id="upsert" parameterType="java.util.List" timeout="60">
+        with value_list as (
+           select todo_item_id, todo_item_label, todo_item_description, todo_category_id, status, created_at, created_by, updated_at, updated_by
+            from ( values
+             <foreach collection="entityList" item="item" separator=",">
+                 (#{item.todoItemId}::uuid, #{item.label}, #{item.description}, #{item.categoryId}::uuid, #{item.status}::todo_status, #{item.createdAt}::timestamptz,
+                 #{item.createdBy}, #{item.updatedAt}::timestamptz, #{item.updatedBy})
+             </foreach>   
+            ) as t (todo_item_id, todo_item_label, todo_item_description, todo_category_id, status, created_at, created_by, updated_at, updated_by)
+        ), updated as (
+            update todo_item set
+            todo_item_label = coalesce(value_list.todo_item_label, todo_item.todo_item_label),
+            todo_item_description = coalesce(value_list.todo_item_description, todo_item.todo_item_description),
+            todo_category_id = coalesce(value_list.todo_category_id, todo_item.todo_category_id),
+            status = coalesce(value_list.status, todo_item.status),
+            updated_at = value_list.updated_at,
+            updated_by = value_list.updated_by
+            from value_list
+            where todo_item.todo_item_id = value_list.todo_item_id
+            returning todo_item.todo_item_id
+            )
+        insert into todo_item (todo_item_id, todo_item_label, todo_item_description, todo_category_id, status, created_at, created_by, updated_at, updated_by)
+        select todo_item_id, todo_item_label, todo_item_description, todo_category_id, status, created_at, created_by, updated_at, updated_by
+        from value_list
+        where not exists (
+            select updated.todo_item_id
+            from updated
+            where updated.todo_item_id = value_list.todo_item_id
+        );
+    </insert>
+
+    <select id="find" resultMap="dbTodoItem">
+        select ti.todo_item_id, ti.todo_item_label, ti.todo_item_description, ti.todo_category_id, tc.todo_category_name, ti.status, ti.created_at, ti.created_by, ti.updated_at, ti.updated_by
+        from todo_item ti
+        join todo_category tc on ti.todo_category_id = tc.todo_category_id
+        where true
+        <if test="todoItemId != null">
+            AND todo_item_id = #{todoItemId}
+        </if>
+        <if test="label != null">
+            AND todo_item_label = #{label}
+        </if>
+        <if test="categoryId != null">
+            AND todo_category_id = #{categoryId}
+        </if>
+        <if test="status != null">
+            AND status = #{status}
+        </if>
+        order by created_at desc
+        limit 1000;
+    </select>
+
+    <delete id="delete">
+        delete from todo_item where todo_item_id = #{todoItemId}
+    </delete>
+</mapper>
