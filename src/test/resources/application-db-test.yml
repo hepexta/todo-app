@@ -1,0 +1,10 @@
+spring:
+  test:
+    database:
+      replace: none
+  flyway:
+    enabled: true
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/dev}
+    driver-class-name: org.postgresql.Driver
+    username: sa

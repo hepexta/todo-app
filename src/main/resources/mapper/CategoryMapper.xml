@@ -15,8 +15,8 @@
 
     <insert id="upsert" parameterType="java.util.List" timeout="60">
         with value_list as (
-           select todo_category_id, todo_category_name, todo_category_description, created_at, created_by, updated_at, updated_by
-            from ( values
+        select todo_category_id, todo_category_name, todo_category_description, created_at, created_by, updated_at, updated_by
+        from ( values
              <foreach collection="entityList" item="item" separator=",">
                  (#{item.categoryId}::uuid, #{item.categoryName}, #{item.description}, #{item.createdAt}::timestamptz,
                  #{item.createdBy}, #{item.updatedAt}::timestamptz, #{item.updatedBy})
@@ -24,8 +24,8 @@
             ) as t (todo_category_id, todo_category_name, todo_category_description, created_at, created_by, updated_at, updated_by)
         ), updated as (
             update todo_category set
-            todo_category_name = coalesce(value_list.todo_category_name, todo_category.todo_category_name,
-            todo_category_description = coalesce(value_list.todo_category_description, todo_category.todo_category_description,
+            todo_category_name = coalesce(value_list.todo_category_name, todo_category.todo_category_name),
+            todo_category_description = coalesce(value_list.todo_category_description, todo_category.todo_category_description),
             updated_at = value_list.updated_at,
             updated_by = value_list.updated_by
             from value_list
